@@ -39,7 +39,6 @@
             position: relative;
         }
         
-        /* Effet ruban adhésif / masking tape */
         .tape {
             position: absolute;
             top: -10px;
@@ -59,7 +58,23 @@
         }
     </style>
 </head>
-<body class="font-sans min-h-screen flex flex-col relative pb-28">
+<body class="font-sans min-h-screen flex flex-col relative pb-28 overflow-hidden" id="body-container">
+
+    <!-- ÉCRAN CODE PIN -->
+    <div id="pin-screen" class="fixed inset-0 z-[100] bg-journalBg/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center">
+            <span class="text-5xl mb-4 block">🔒</span>
+            <h2 class="text-2xl font-extrabold text-journalText mb-2">Album Privé</h2>
+            <p class="text-sm text-gray-500 mb-8">Entrez le code secret pour accéder à vos souvenirs.</p>
+            
+            <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" class="w-full text-center text-3xl tracking-[1em] font-bold bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-journalAccent mb-4 transition-colors">
+            
+            <button onclick="checkPin()" class="w-full bg-journalText hover:bg-black text-white font-bold py-4 rounded-xl transition shadow-lg">
+                Déverrouiller
+            </button>
+            <p id="pin-error" class="text-red-500 text-sm font-bold mt-4 opacity-0 transition-opacity">Code incorrect !</p>
+        </div>
+    </div>
 
     <header class="sticky top-0 z-40 bg-journalBg/80 backdrop-blur-md border-b border-gray-200/50 px-6 py-5">
         <div class="max-w-md mx-auto flex justify-between items-center">
@@ -77,7 +92,6 @@
     </header>
 
     <main class="max-w-md mx-auto w-full px-4 pt-6 pb-12 flex-1 flex flex-col gap-8" id="feed-container">
-        <!-- État de chargement initial -->
         <div id="loading-state" class="flex flex-col items-center justify-center py-20 opacity-50">
             <svg class="animate-spin h-8 w-8 text-journalAccent mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p class="text-sm font-medium">Synchronisation des souvenirs...</p>
@@ -88,16 +102,15 @@
         +
     </button>
 
+    <!-- MODAL D'AJOUT -->
     <div id="add-modal" class="fixed inset-0 bg-journalText/40 z-50 hidden flex flex-col justify-end backdrop-blur-sm transition-opacity">
         <div class="bg-journalPaper w-full max-w-md mx-auto rounded-t-[2rem] p-6 shadow-2xl h-[85vh] flex flex-col relative transform translate-y-full transition-transform duration-300" id="modal-content">
-            
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold">Nouveau souvenir ✨</h3>
                 <button onclick="closeAddModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">&times;</button>
             </div>
             
             <div class="flex-1 overflow-y-auto hide-scroll space-y-5 pb-10">
-                <!-- Selecteur d'image -->
                 <div>
                     <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
                     <div id="upload-box" onclick="document.getElementById('photo-input').click()" class="w-full aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-100 transition-colors relative overflow-hidden">
@@ -107,19 +120,16 @@
                     </div>
                 </div>
 
-                <!-- Date -->
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Date du souvenir</label>
                     <input type="date" id="post-date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent text-sm font-medium">
                 </div>
 
-                <!-- Description -->
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">L'anecdote / Le moment</label>
                     <textarea id="post-desc" rows="3" placeholder="Raconte ce qu'on a fait..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent text-sm resize-none"></textarea>
                 </div>
 
-                <!-- Auteur -->
                 <div>
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Qui poste ?</label>
                     <div class="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-200">
@@ -129,7 +139,6 @@
                 </div>
             </div>
 
-            <!-- Bouton de soumission -->
             <div class="pt-4 border-t border-gray-100">
                 <button id="btn-submit" onclick="publishMemory()" class="w-full bg-journalText hover:bg-black text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
                     Publier dans l'Album 🚀
@@ -138,7 +147,8 @@
         </div>
     </div>
 
-    <div id="custom-alert" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+    <!-- ALERTE -->
+    <div id="custom-alert" class="fixed inset-0 z-[110] hidden flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center">
             <h4 class="font-bold text-lg mb-2" id="alert-title">Attention</h4>
             <p class="text-sm text-gray-600 mb-6" id="alert-msg">Message</p>
@@ -149,29 +159,60 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // 🔴 1. RECOLLE TES CLÉS FIREBASE ICI 🔴
         const firebaseConfig = {
-            apiKey: "AIzaSyCNI2b-69gTENfzwjVq3jQCkXppJIMZrRU",
-            authDomain: "notrealbum-e1918.firebaseapp.com",
-            projectId: "notrealbum-e1918",
-            storageBucket: "notrealbum-e1918.firebasestorage.app",
-            messagingSenderId: "253496221106",
-            appId: "1:253496221106:web:59404a9b7dfcc1962358ab"
+            apiKey: "COPIEZ_VOTRE_API_KEY_ICI",
+            authDomain: "votre-projet.firebaseapp.com",
+            projectId: "votre-projet-id",
+            storageBucket: "votre-projet.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:12345:web:abcdef"
         };   
 
+        // 🔴 2. CHOISIS TON CODE PIN ICI 🔴
+        const SECRET_PIN = "2580";
+
+        // ================= GESTION DU CODE PIN =================
+        const pinScreen = document.getElementById('pin-screen');
+        const bodyContainer = document.getElementById('body-container');
+        
+        // On vérifie si le téléphone se souvient du code
+        if (localStorage.getItem('album_pin') === SECRET_PIN) {
+            pinScreen.style.display = 'none';
+            bodyContainer.classList.remove('overflow-hidden');
+        }
+
+        window.checkPin = () => {
+            const input = document.getElementById('pin-input').value;
+            const errorText = document.getElementById('pin-error');
+            
+            if (input === SECRET_PIN) {
+                // Code bon : on le sauvegarde et on cache l'écran
+                localStorage.setItem('album_pin', SECRET_PIN);
+                pinScreen.style.opacity = '0';
+                setTimeout(() => {
+                    pinScreen.style.display = 'none';
+                    bodyContainer.classList.remove('overflow-hidden');
+                }, 500);
+            } else {
+                // Code faux : on affiche l'erreur
+                errorText.style.opacity = '1';
+                document.getElementById('pin-input').value = "";
+                setTimeout(() => errorText.style.opacity = '0', 2000);
+            }
+        };
+
+        // ================= GESTION DU RESTE DE L'APPLICATION =================
         let app, auth, db;
         let isCloudActive = false;
-        
-        // Nom de la collection dans votre propre base de données
         const COLLECTION_PATH = `memories`;
-
         let currentAuthor = 'Moi';
         let currentCompressedImage = null;
         let isUploading = false;
         let memories = [];
 
-        // Vérifie si l'utilisateur a rempli ses clés
         if (firebaseConfig.apiKey !== "COPIEZ_VOTRE_API_KEY_ICI") {
             try {
                 app = initializeApp(firebaseConfig);
@@ -193,7 +234,6 @@
         window.handleImageSelect = (event) => {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
@@ -201,7 +241,7 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const maxSize = 800; // Compression pour économiser la base de données gratuite
+                    const maxSize = 800; 
 
                     if (width > height && width > maxSize) {
                         height *= maxSize / width;
@@ -217,7 +257,6 @@
                     ctx.drawImage(img, 0, 0, width, height);
                     
                     currentCompressedImage = canvas.toDataURL('image/jpeg', 0.7);
-                    
                     const preview = document.getElementById('upload-preview');
                     preview.style.backgroundImage = `url(${currentCompressedImage})`;
                     preview.classList.remove('hidden');
@@ -263,17 +302,14 @@
 
         window.publishMemory = async () => {
             if (isUploading) return;
-            
             const date = document.getElementById('post-date').value;
             const desc = document.getElementById('post-desc').value.trim();
             
             if (!currentCompressedImage) {
-                showAlert("Oups", "N'oublie pas d'ajouter une belle photo !");
-                return;
+                showAlert("Oups", "N'oublie pas d'ajouter une belle photo !"); return;
             }
             if (!desc) {
-                showAlert("Oups", "Écris un petit mot pour décrire ce moment.");
-                return;
+                showAlert("Oups", "Écris un petit mot pour décrire ce moment."); return;
             }
 
             isUploading = true;
@@ -341,7 +377,6 @@
         function renderFeed() {
             const feed = document.getElementById('feed-container');
             feed.innerHTML = '';
-
             const sortedMemories = [...memories].sort((a, b) => b.timestamp - a.timestamp);
 
             if (sortedMemories.length === 0) {
@@ -357,10 +392,8 @@
             sortedMemories.forEach(mem => {
                 const d = new Date(mem.date);
                 const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-
                 const card = document.createElement('div');
                 card.className = "polaroid transform transition-transform hover:-translate-y-1";
-                
                 const rot = (Math.random() * 2 - 1).toFixed(1);
                 card.style.transform = `rotate(${rot}deg)`;
 
@@ -382,7 +415,6 @@
                         <p class="text-journalText text-sm leading-relaxed">${mem.description}</p>
                     </div>
                 `;
-                
                 feed.appendChild(card);
             });
         }
@@ -391,7 +423,6 @@
             document.getElementById('btn-add').classList.remove('hidden');
 
             if (!isCloudActive) {
-                // Mode local si les clés ne sont pas configurées
                 document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-orange-100');
                 document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-orange-700');
                 document.getElementById('cloud-text').innerText = "Mode Local";
@@ -400,7 +431,6 @@
                 document.getElementById('loading-state').innerHTML = `
                     <div class="text-center bg-orange-50 border border-orange-100 p-4 rounded-xl max-w-xs mx-auto">
                         <p class="text-orange-600 font-bold mb-1">☁️ Clés Firebase manquantes</p>
-                        <p class="text-xs text-orange-500 font-medium">L'album marche sur ce téléphone, mais ne se synchronisera pas. N'oubliez pas d'insérer vos clés dans le code !</p>
                     </div>
                 `;
                 
@@ -416,7 +446,6 @@
             }
 
             try {
-                // Connexion anonyme à votre Firebase
                 await signInAnonymously(auth);
                 const user = auth.currentUser;
                 if (!user) return;
@@ -425,17 +454,12 @@
                 document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-green-700');
                 document.getElementById('cloud-text').innerText = "En Ligne";
 
-                // Écoute en temps réel de votre collection Firestore
                 onSnapshot(collection(db, COLLECTION_PATH), (snapshot) => {
                     memories = [];
                     snapshot.forEach((doc) => {
                         memories.push({ id: doc.id, ...doc.data() });
                     });
                     renderFeed();
-                }, (error) => {
-                    console.error("Erreur de synchronisation Cloud:", error);
-                    document.getElementById('cloud-status').classList.replace('bg-green-100', 'bg-red-100');
-                    document.getElementById('cloud-text').innerText = "Déconnecté";
                 });
 
             } catch (error) {
