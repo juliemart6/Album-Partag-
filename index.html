@@ -60,19 +60,21 @@
 </head>
 <body class="font-sans min-h-screen flex flex-col relative pb-28 overflow-hidden" id="body-container">
 
-    <!-- ÉCRAN CODE PIN -->
-    <div id="pin-screen" class="fixed inset-0 z-[100] bg-journalBg/90 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-opacity duration-500">
+    <!-- ÉCRAN DE CONNEXION -->
+    <div id="login-screen" class="fixed inset-0 z-[100] bg-journalBg/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-opacity duration-500">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center">
-            <span class="text-5xl mb-4 block">🔒</span>
-            <h2 class="text-2xl font-extrabold text-journalText mb-2">Album Privé</h2>
-            <p class="text-sm text-gray-500 mb-8">Entrez le code secret pour accéder à vos souvenirs.</p>
+            <span class="text-5xl mb-4 block">🔐</span>
+            <h2 class="text-2xl font-extrabold text-journalText mb-2">Notre Album</h2>
+            <p class="text-sm text-gray-500 mb-8">Connectez-vous pour voir vos souvenirs.</p>
             
-            <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" class="w-full text-center text-3xl tracking-[1em] font-bold bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-4 outline-none focus:border-journalAccent mb-4 transition-colors">
+            <input type="email" id="email-input" placeholder="Adresse e-mail" class="w-full text-center text-lg font-medium bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent mb-3 transition-colors">
             
-            <button onclick="checkPin()" class="w-full bg-journalText hover:bg-black text-white font-bold py-4 rounded-xl transition shadow-lg">
-                Déverrouiller
+            <input type="password" id="pwd-input" placeholder="Mot de passe" class="w-full text-center text-lg font-medium bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent mb-6 transition-colors">
+            
+            <button onclick="handleLogin()" id="btn-login" class="w-full bg-journalText hover:bg-black text-white font-bold py-4 rounded-xl transition shadow-lg flex justify-center items-center">
+                Se connecter
             </button>
-            <p id="pin-error" class="text-red-500 text-sm font-bold mt-4 opacity-0 transition-opacity">Code incorrect !</p>
+            <p id="login-error" class="text-red-500 text-sm font-bold mt-4 opacity-0 transition-opacity">Identifiants incorrects !</p>
         </div>
     </div>
 
@@ -82,11 +84,11 @@
                 <h1 class="text-2xl font-extrabold tracking-tight text-journalText flex items-center gap-2">
                     L'Album <span class="text-xl">📸</span>
                 </h1>
-                <p class="text-xs font-medium text-gray-500 mt-0.5">Nos souvenirs partagés</p>
+                <p class="text-xs font-medium text-gray-500 mt-0.5" id="user-display">Nos souvenirs partagés</p>
             </div>
-            <div id="cloud-status" class="bg-journalSecondary/20 text-teal-700 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all">
-                <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse" id="cloud-dot"></span> 
-                <span id="cloud-text">Connexion...</span>
+            <div id="cloud-status" class="bg-journalSecondary/20 text-teal-700 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer" onclick="handleLogout()">
+                <span class="w-2 h-2 rounded-full bg-teal-500" id="cloud-dot"></span> 
+                <span id="cloud-text">Connecté</span>
             </div>
         </div>
     </header>
@@ -94,7 +96,7 @@
     <main class="max-w-md mx-auto w-full px-4 pt-6 pb-12 flex-1 flex flex-col gap-8" id="feed-container">
         <div id="loading-state" class="flex flex-col items-center justify-center py-20 opacity-50">
             <svg class="animate-spin h-8 w-8 text-journalAccent mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p class="text-sm font-medium">Synchronisation des souvenirs...</p>
+            <p class="text-sm font-medium">Chargement...</p>
         </div>
     </main>
 
@@ -129,14 +131,6 @@
                     <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">L'anecdote / Le moment</label>
                     <textarea id="post-desc" rows="3" placeholder="Raconte ce qu'on a fait..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent text-sm resize-none"></textarea>
                 </div>
-
-                <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Qui poste ?</label>
-                    <div class="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-200">
-                        <button onclick="selectAuthor('Moi')" id="author-Moi" class="flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText">Moi</button>
-                        <button onclick="selectAuthor('Lui')" id="author-Lui" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-500">Lui</button>
-                    </div>
-                </div>
             </div>
 
             <div class="pt-4 border-t border-gray-100">
@@ -158,72 +152,84 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 🔴 1. RECOLLE TES CLÉS FIREBASE ICI 🔴
+        // 🔴 TES CLÉS FIREBASE SONT INTÉGRÉES ICI 🔴
         const firebaseConfig = {
-            apiKey: "COPIEZ_VOTRE_API_KEY_ICI",
-            authDomain: "votre-projet.firebaseapp.com",
-            projectId: "votre-projet-id",
-            storageBucket: "votre-projet.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:12345:web:abcdef"
+            apiKey: "AIzaSyCNI2b-69gTENfzwjVq3jQCkXppJIMZrRU",
+            authDomain: "notrealbum-e1918.firebaseapp.com",
+            projectId: "notrealbum-e1918",
+            storageBucket: "notrealbum-e1918.firebasestorage.app",
+            messagingSenderId: "253496221106",
+            appId: "1:253496221106:web:59404a9b7dfcc1962358ab"
         };   
 
-        // 🔴 2. CHOISIS TON CODE PIN ICI 🔴
-        const SECRET_PIN = "2580";
-
-        // ================= GESTION DU CODE PIN =================
-        const pinScreen = document.getElementById('pin-screen');
-        const bodyContainer = document.getElementById('body-container');
-        
-        // On vérifie si le téléphone se souvient du code
-        if (localStorage.getItem('album_pin') === SECRET_PIN) {
-            pinScreen.style.display = 'none';
-            bodyContainer.classList.remove('overflow-hidden');
-        }
-
-        window.checkPin = () => {
-            const input = document.getElementById('pin-input').value;
-            const errorText = document.getElementById('pin-error');
-            
-            if (input === SECRET_PIN) {
-                // Code bon : on le sauvegarde et on cache l'écran
-                localStorage.setItem('album_pin', SECRET_PIN);
-                pinScreen.style.opacity = '0';
-                setTimeout(() => {
-                    pinScreen.style.display = 'none';
-                    bodyContainer.classList.remove('overflow-hidden');
-                }, 500);
-            } else {
-                // Code faux : on affiche l'erreur
-                errorText.style.opacity = '1';
-                document.getElementById('pin-input').value = "";
-                setTimeout(() => errorText.style.opacity = '0', 2000);
-            }
-        };
-
-        // ================= GESTION DU RESTE DE L'APPLICATION =================
         let app, auth, db;
-        let isCloudActive = false;
         const COLLECTION_PATH = `memories`;
-        let currentAuthor = 'Moi';
+        let currentAuthorEmail = '';
         let currentCompressedImage = null;
         let isUploading = false;
         let memories = [];
+        let unsubscribeSnapshot = null;
 
-        if (firebaseConfig.apiKey !== "COPIEZ_VOTRE_API_KEY_ICI") {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                isCloudActive = true;
-            } catch (error) {
-                console.error("Erreur d'initialisation Firebase:", error);
+        // Initialisation de Firebase
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        const loginScreen = document.getElementById('login-screen');
+        const bodyContainer = document.getElementById('body-container');
+
+        // ================= AUTHENTIFICATION =================
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // Utilisateur connecté
+                currentAuthorEmail = user.email.split('@')[0]; // Récupère le pseudo avant le @
+                document.getElementById('user-display').innerText = `Connecté en tant que ${currentAuthorEmail}`;
+                loginScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    bodyContainer.classList.remove('overflow-hidden');
+                }, 500);
+                
+                document.getElementById('btn-add').classList.remove('hidden');
+                loadMemories();
+            } else {
+                // Utilisateur déconnecté
+                loginScreen.style.display = 'flex';
+                loginScreen.style.opacity = '1';
+                bodyContainer.classList.add('overflow-hidden');
+                document.getElementById('btn-add').classList.add('hidden');
+                if(unsubscribeSnapshot) unsubscribeSnapshot();
             }
-        }
+        });
 
+        window.handleLogin = async () => {
+            const email = document.getElementById('email-input').value.trim();
+            const pwd = document.getElementById('pwd-input').value.trim();
+            const btn = document.getElementById('btn-login');
+            const errorText = document.getElementById('login-error');
+            
+            if(!email || !pwd) return;
+
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            errorText.style.opacity = '0';
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pwd);
+            } catch (error) {
+                console.error(error);
+                errorText.style.opacity = '1';
+                btn.innerHTML = `Se connecter`;
+            }
+        };
+
+        window.handleLogout = () => {
+            signOut(auth);
+        };
+
+        // ================= GESTION DU RESTE DE L'APPLICATION =================
         window.showAlert = (title, msg) => {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-msg').innerText = msg;
@@ -286,20 +292,6 @@
             document.getElementById('post-desc').value = "";
         };
 
-        window.selectAuthor = (author) => {
-            currentAuthor = author;
-            const btnMoi = document.getElementById('author-Moi');
-            const btnLui = document.getElementById('author-Lui');
-            
-            if(author === 'Moi') {
-                btnMoi.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText";
-                btnLui.className = "flex-1 py-2 rounded-lg text-sm font-medium text-gray-500 bg-transparent";
-            } else {
-                btnLui.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText";
-                btnMoi.className = "flex-1 py-2 rounded-lg text-sm font-medium text-gray-500 bg-transparent";
-            }
-        };
-
         window.publishMemory = async () => {
             if (isUploading) return;
             const date = document.getElementById('post-date').value;
@@ -320,19 +312,12 @@
                 photo: currentCompressedImage,
                 date: date,
                 description: desc,
-                author: currentAuthor,
+                author: currentAuthorEmail,
                 timestamp: Date.now()
             };
 
             try {
-                if (isCloudActive) {
-                    await addDoc(collection(db, COLLECTION_PATH), newMemory);
-                } else {
-                    newMemory.id = Date.now().toString();
-                    memories.push(newMemory);
-                    localStorage.setItem('local_album', JSON.stringify(memories));
-                    renderFeed();
-                }
+                await addDoc(collection(db, COLLECTION_PATH), newMemory);
                 closeAddModal();
             } catch (error) {
                 console.error("Erreur d'ajout:", error);
@@ -356,13 +341,7 @@
             
             btn.onclick = async () => {
                 try {
-                    if (isCloudActive) {
-                        await deleteDoc(doc(db, COLLECTION_PATH, id));
-                    } else {
-                        memories = memories.filter(m => m.id !== id);
-                        localStorage.setItem('local_album', JSON.stringify(memories));
-                        renderFeed();
-                    }
+                    await deleteDoc(doc(db, COLLECTION_PATH, id));
                     closeAlert();
                 } catch(e) {
                     console.error(e);
@@ -410,7 +389,7 @@
                     <div class="px-2">
                         <div class="flex justify-between items-baseline mb-2">
                             <span class="font-handwriting text-2xl text-journalAccent">${dateStr}</span>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">Posté par ${mem.author}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded capitalize">Posté par ${mem.author}</span>
                         </div>
                         <p class="text-journalText text-sm leading-relaxed">${mem.description}</p>
                     </div>
@@ -419,56 +398,15 @@
             });
         }
 
-        async function initializeAppCloud() {
-            document.getElementById('btn-add').classList.remove('hidden');
-
-            if (!isCloudActive) {
-                document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-orange-100');
-                document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-orange-700');
-                document.getElementById('cloud-text').innerText = "Mode Local";
-                document.getElementById('cloud-dot').classList.replace('bg-teal-500', 'bg-orange-500');
-                
-                document.getElementById('loading-state').innerHTML = `
-                    <div class="text-center bg-orange-50 border border-orange-100 p-4 rounded-xl max-w-xs mx-auto">
-                        <p class="text-orange-600 font-bold mb-1">☁️ Clés Firebase manquantes</p>
-                    </div>
-                `;
-                
-                setTimeout(() => {
-                    const ls = document.getElementById('loading-state');
-                    if(ls) ls.style.display = 'none';
-                }, 6000);
-
-                const saved = localStorage.getItem('local_album');
-                if (saved) memories = JSON.parse(saved);
-                renderFeed();
-                return;
-            }
-
-            try {
-                await signInAnonymously(auth);
-                const user = auth.currentUser;
-                if (!user) return;
-
-                document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-green-100');
-                document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-green-700');
-                document.getElementById('cloud-text').innerText = "En Ligne";
-
-                onSnapshot(collection(db, COLLECTION_PATH), (snapshot) => {
-                    memories = [];
-                    snapshot.forEach((doc) => {
-                        memories.push({ id: doc.id, ...doc.data() });
-                    });
-                    renderFeed();
+        function loadMemories() {
+            unsubscribeSnapshot = onSnapshot(collection(db, COLLECTION_PATH), (snapshot) => {
+                memories = [];
+                snapshot.forEach((doc) => {
+                    memories.push({ id: doc.id, ...doc.data() });
                 });
-
-            } catch (error) {
-                console.error("Auth error:", error);
-                document.getElementById('loading-state').innerHTML = `<p class="text-red-500 font-bold text-center">Erreur de connexion.<br>Avez-vous bien activé l'authentification "Anonyme" dans Firebase ?</p>`;
-            }
+                renderFeed();
+            });
         }
-
-        initializeAppCloud();
     </script>
 </body>
 </html>
