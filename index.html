@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notre Journal 📸</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        journalBg: '#F9F6F0',
+                        journalPaper: '#FFFFFF',
+                        journalText: '#2D3748',
+                        journalAccent: '#E29578',
+                        journalSecondary: '#83C5BE'
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        handwriting: ['Caveat', 'cursive']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #F9F6F0; color: #2D3748; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .polaroid {
+            background: white;
+            padding: 12px 12px 40px 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        /* Effet ruban adhésif / masking tape */
+        .tape {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            width: 100px;
+            height: 25px;
+            background-color: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            backdrop-filter: blur(2px);
+            z-index: 10;
+        }
+
+        #upload-preview {
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col relative pb-28">
+
+    <header class="sticky top-0 z-40 bg-journalBg/80 backdrop-blur-md border-b border-gray-200/50 px-6 py-5">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-journalText flex items-center gap-2">
+                    L'Album <span class="text-xl">📸</span>
+                </h1>
+                <p class="text-xs font-medium text-gray-500 mt-0.5">Nos souvenirs partagés</p>
+            </div>
+            <div id="cloud-status" class="bg-journalSecondary/20 text-teal-700 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all">
+                <span class="w-2 h-2 rounded-full bg-teal-500 animate-pulse" id="cloud-dot"></span> 
+                <span id="cloud-text">Connexion...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto w-full px-4 pt-6 pb-12 flex-1 flex flex-col gap-8" id="feed-container">
+        <!-- État de chargement initial -->
+        <div id="loading-state" class="flex flex-col items-center justify-center py-20 opacity-50">
+            <svg class="animate-spin h-8 w-8 text-journalAccent mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="text-sm font-medium">Synchronisation des souvenirs...</p>
+        </div>
+    </main>
+
+    <button onclick="openAddModal()" id="btn-add" class="fixed bottom-8 right-6 w-16 h-16 bg-journalAccent hover:bg-orange-500 text-white rounded-full shadow-xl flex items-center justify-center text-3xl transform transition-transform hover:scale-105 z-40 hidden">
+        +
+    </button>
+
+    <div id="add-modal" class="fixed inset-0 bg-journalText/40 z-50 hidden flex flex-col justify-end backdrop-blur-sm transition-opacity">
+        <div class="bg-journalPaper w-full max-w-md mx-auto rounded-t-[2rem] p-6 shadow-2xl h-[85vh] flex flex-col relative transform translate-y-full transition-transform duration-300" id="modal-content">
+            
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Nouveau souvenir ✨</h3>
+                <button onclick="closeAddModal()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">&times;</button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto hide-scroll space-y-5 pb-10">
+                <!-- Selecteur d'image -->
+                <div>
+                    <input type="file" id="photo-input" accept="image/*" class="hidden" onchange="handleImageSelect(event)">
+                    <div id="upload-box" onclick="document.getElementById('photo-input').click()" class="w-full aspect-[4/3] bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:bg-gray-100 transition-colors relative overflow-hidden">
+                        <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="text-sm font-medium">Ajouter une photo</span>
+                        <div id="upload-preview" class="absolute inset-0 hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Date du souvenir</label>
+                    <input type="date" id="post-date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent text-sm font-medium">
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">L'anecdote / Le moment</label>
+                    <textarea id="post-desc" rows="3" placeholder="Raconte ce qu'on a fait..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-journalAccent text-sm resize-none"></textarea>
+                </div>
+
+                <!-- Auteur -->
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Qui poste ?</label>
+                    <div class="flex gap-2 p-1 bg-gray-50 rounded-xl border border-gray-200">
+                        <button onclick="selectAuthor('Moi')" id="author-Moi" class="flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText">Moi</button>
+                        <button onclick="selectAuthor('Lui')" id="author-Lui" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-500">Lui</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bouton de soumission -->
+            <div class="pt-4 border-t border-gray-100">
+                <button id="btn-submit" onclick="publishMemory()" class="w-full bg-journalText hover:bg-black text-white font-bold py-4 rounded-xl transition flex items-center justify-center gap-2">
+                    Publier dans l'Album 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-alert" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-xs w-full text-center">
+            <h4 class="font-bold text-lg mb-2" id="alert-title">Attention</h4>
+            <p class="text-sm text-gray-600 mb-6" id="alert-msg">Message</p>
+            <button onclick="closeAlert()" class="w-full bg-journalAccent text-white font-bold py-2.5 rounded-xl">Compris</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Récupération de l'ID d'application (unique à votre session)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-journal-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // Règle 1 respectée : Chemin strict pour les données publiques partagées
+        const COLLECTION_PATH = `artifacts/${appId}/public/data/memories`;
+
+        let currentAuthor = 'Moi';
+        let currentCompressedImage = null;
+        let isUploading = false;
+        let memories = [];
+
+        // UI Helpers
+        window.showAlert = (title, msg) => {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-msg').innerText = msg;
+            document.getElementById('custom-alert').classList.remove('hidden');
+        };
+        window.closeAlert = () => document.getElementById('custom-alert').classList.add('hidden');
+
+        window.handleImageSelect = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxSize = 800; // Compression pour être sûr que ça passe sur Firebase
+
+                    if (width > height && width > maxSize) {
+                        height *= maxSize / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width *= maxSize / height;
+                        height = maxSize;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Conversion en Base64 qualité 70%
+                    currentCompressedImage = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    const preview = document.getElementById('upload-preview');
+                    preview.style.backgroundImage = `url(${currentCompressedImage})`;
+                    preview.classList.remove('hidden');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.openAddModal = () => {
+            document.getElementById('post-date').valueAsDate = new Date(); // Date du jour par défaut
+            const modal = document.getElementById('add-modal');
+            const content = document.getElementById('modal-content');
+            modal.classList.remove('hidden');
+            setTimeout(() => content.classList.remove('translate-y-full'), 10);
+        };
+
+        window.closeAddModal = () => {
+            const modal = document.getElementById('add-modal');
+            const content = document.getElementById('modal-content');
+            content.classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+            
+            // Reset du formulaire
+            currentCompressedImage = null;
+            document.getElementById('photo-input').value = "";
+            document.getElementById('upload-preview').classList.add('hidden');
+            document.getElementById('post-desc').value = "";
+        };
+
+        window.selectAuthor = (author) => {
+            currentAuthor = author;
+            const btnMoi = document.getElementById('author-Moi');
+            const btnLui = document.getElementById('author-Lui');
+            
+            if(author === 'Moi') {
+                btnMoi.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText";
+                btnLui.className = "flex-1 py-2 rounded-lg text-sm font-medium text-gray-500 bg-transparent";
+            } else {
+                btnLui.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-white shadow-sm text-journalText";
+                btnMoi.className = "flex-1 py-2 rounded-lg text-sm font-medium text-gray-500 bg-transparent";
+            }
+        };
+
+        window.publishMemory = async () => {
+            if (isUploading) return;
+            
+            const date = document.getElementById('post-date').value;
+            const desc = document.getElementById('post-desc').value.trim();
+            
+            if (!currentCompressedImage) {
+                showAlert("Oups", "N'oublie pas d'ajouter une belle photo !");
+                return;
+            }
+            if (!desc) {
+                showAlert("Oups", "Écris un petit mot pour décrire ce moment.");
+                return;
+            }
+
+            isUploading = true;
+            const btn = document.getElementById('btn-submit');
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Envoi en cours...`;
+
+            try {
+                // Création du document
+                await addDoc(collection(db, COLLECTION_PATH), {
+                    photo: currentCompressedImage,
+                    date: date,
+                    description: desc,
+                    author: currentAuthor,
+                    timestamp: Date.now()
+                });
+                closeAddModal();
+            } catch (error) {
+                console.error("Erreur d'ajout:", error);
+                showAlert("Erreur", "Impossible de sauvegarder le souvenir. Vérifie ta connexion.");
+            } finally {
+                isUploading = false;
+                btn.innerHTML = `Publier dans l'Album 🚀`;
+            }
+        };
+
+        window.deleteMemory = async (id) => {
+            document.getElementById('custom-alert').classList.remove('hidden');
+            document.getElementById('alert-title').innerText = "Suppression";
+            document.getElementById('alert-msg').innerText = "Voulez-vous vraiment supprimer ce souvenir ?";
+            
+            // Remplacement temporaire du bouton pour la confirmation
+            const btn = document.querySelector('#custom-alert button');
+            const oldOnclick = btn.onclick;
+            
+            btn.innerText = "Oui, supprimer";
+            btn.classList.replace('bg-journalAccent', 'bg-red-500');
+            
+            btn.onclick = async () => {
+                try {
+                    await deleteDoc(doc(db, COLLECTION_PATH, id));
+                    closeAlert();
+                } catch(e) {
+                    console.error(e);
+                } finally {
+                    // Restauration du bouton alert standard
+                    btn.innerText = "Compris";
+                    btn.classList.replace('bg-red-500', 'bg-journalAccent');
+                    btn.onclick = oldOnclick;
+                }
+            };
+        };
+
+        function renderFeed() {
+            const feed = document.getElementById('feed-container');
+            feed.innerHTML = '';
+
+            // Règle 2 respectée : Tri effectué en mémoire Javascript
+            const sortedMemories = [...memories].sort((a, b) => b.timestamp - a.timestamp);
+
+            if (sortedMemories.length === 0) {
+                feed.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                        <span class="text-6xl mb-4">📭</span>
+                        <h2 class="text-lg font-bold">L'Album est vide !</h2>
+                        <p class="text-sm mt-1">Ajoute votre première photo pour commencer.</p>
+                    </div>`;
+                return;
+            }
+
+            sortedMemories.forEach(mem => {
+                // Formater la date joliment
+                const d = new Date(mem.date);
+                const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                const card = document.createElement('div');
+                card.className = "polaroid transform transition-transform hover:-translate-y-1";
+                
+                // Un peu de rotation aléatoire pour le style Polaroïd (-1deg, 0deg, ou 1deg)
+                const rot = (Math.random() * 2 - 1).toFixed(1);
+                card.style.transform = `rotate(${rot}deg)`;
+
+                card.innerHTML = `
+                    <div class="tape"></div>
+                    <button onclick="deleteMemory('${mem.id}')" class="absolute top-3 right-3 w-8 h-8 bg-white/70 hover:bg-red-500 text-gray-700 hover:text-white rounded-full flex items-center justify-center shadow-sm backdrop-blur-md transition-all z-20">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    
+                    <div class="w-full aspect-square bg-gray-100 rounded border border-gray-200 overflow-hidden mb-4 relative group">
+                        <img src="${mem.photo}" alt="Souvenir" class="w-full h-full object-cover">
+                    </div>
+                    
+                    <div class="px-2">
+                        <div class="flex justify-between items-baseline mb-2">
+                            <span class="font-handwriting text-2xl text-journalAccent">${dateStr}</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">Posté par ${mem.author}</span>
+                        </div>
+                        <p class="text-journalText text-sm leading-relaxed">${mem.description}</p>
+                    </div>
+                `;
+                
+                feed.appendChild(card);
+            });
+        }
+
+        async function initializeAppCloud() {
+            try {
+                // Règle 3 respectée : Authentification AVANT les requêtes
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                const user = auth.currentUser;
+                if (!user) return;
+
+                // Affichage statut
+                document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-green-100');
+                document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-green-700');
+                document.getElementById('cloud-text').innerText = "Cloud Actif";
+                document.getElementById('btn-add').classList.remove('hidden');
+
+                // Écoute de la collection Firestore en temps réel
+                onSnapshot(collection(db, COLLECTION_PATH), (snapshot) => {
+                    memories = [];
+                    snapshot.forEach((doc) => {
+                        memories.push({ id: doc.id, ...doc.data() });
+                    });
+                    renderFeed();
+                }, (error) => {
+                    console.error("Erreur de synchronisation Cloud:", error);
+                    document.getElementById('cloud-status').classList.replace('bg-green-100', 'bg-red-100');
+                    document.getElementById('cloud-text').innerText = "Déconnecté";
+                });
+
+            } catch (error) {
+                console.error("Auth error:", error);
+                document.getElementById('loading-state').innerHTML = `<p class="text-red-500 font-bold">Erreur de connexion Cloud.</p>`;
+            }
+        }
+
+        // Lancement
+        initializeAppCloud();
+    </script>
+</body>
+</html>
