@@ -148,26 +148,41 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Récupération de l'ID d'application (unique à votre session)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-journal-app';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfig = {
+            apiKey: "AIzaSyCNI2b-69gTENfzwjVq3jQCkXppJIMZrRU",
+            authDomain: "notrealbum-e1918.firebaseapp.com",
+            projectId: "notrealbum-e1918",
+            storageBucket: "notrealbum-e1918.firebasestorage.app",
+            messagingSenderId: "253496221106",
+            appId: "1:253496221106:web:59404a9b7dfcc1962358ab"
+        };   
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        let isCloudActive = false;
         
-        // Règle 1 respectée : Chemin strict pour les données publiques partagées
-        const COLLECTION_PATH = `artifacts/${appId}/public/data/memories`;
+        // Nom de la collection dans votre propre base de données
+        const COLLECTION_PATH = `memories`;
 
         let currentAuthor = 'Moi';
         let currentCompressedImage = null;
         let isUploading = false;
         let memories = [];
 
-        // UI Helpers
+        // Vérifie si l'utilisateur a rempli ses clés
+        if (firebaseConfig.apiKey !== "COPIEZ_VOTRE_API_KEY_ICI") {
+            try {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                isCloudActive = true;
+            } catch (error) {
+                console.error("Erreur d'initialisation Firebase:", error);
+            }
+        }
+
         window.showAlert = (title, msg) => {
             document.getElementById('alert-title').innerText = title;
             document.getElementById('alert-msg').innerText = msg;
@@ -186,7 +201,7 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const maxSize = 800; // Compression pour être sûr que ça passe sur Firebase
+                    const maxSize = 800; // Compression pour économiser la base de données gratuite
 
                     if (width > height && width > maxSize) {
                         height *= maxSize / width;
@@ -201,7 +216,6 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Conversion en Base64 qualité 70%
                     currentCompressedImage = canvas.toDataURL('image/jpeg', 0.7);
                     
                     const preview = document.getElementById('upload-preview');
@@ -214,7 +228,7 @@
         };
 
         window.openAddModal = () => {
-            document.getElementById('post-date').valueAsDate = new Date(); // Date du jour par défaut
+            document.getElementById('post-date').valueAsDate = new Date();
             const modal = document.getElementById('add-modal');
             const content = document.getElementById('modal-content');
             modal.classList.remove('hidden');
@@ -227,7 +241,6 @@
             content.classList.add('translate-y-full');
             setTimeout(() => modal.classList.add('hidden'), 300);
             
-            // Reset du formulaire
             currentCompressedImage = null;
             document.getElementById('photo-input').value = "";
             document.getElementById('upload-preview').classList.add('hidden');
@@ -267,15 +280,23 @@
             const btn = document.getElementById('btn-submit');
             btn.innerHTML = `<svg class="animate-spin h-5 w-5 mr-2 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Envoi en cours...`;
 
+            const newMemory = {
+                photo: currentCompressedImage,
+                date: date,
+                description: desc,
+                author: currentAuthor,
+                timestamp: Date.now()
+            };
+
             try {
-                // Création du document
-                await addDoc(collection(db, COLLECTION_PATH), {
-                    photo: currentCompressedImage,
-                    date: date,
-                    description: desc,
-                    author: currentAuthor,
-                    timestamp: Date.now()
-                });
+                if (isCloudActive) {
+                    await addDoc(collection(db, COLLECTION_PATH), newMemory);
+                } else {
+                    newMemory.id = Date.now().toString();
+                    memories.push(newMemory);
+                    localStorage.setItem('local_album', JSON.stringify(memories));
+                    renderFeed();
+                }
                 closeAddModal();
             } catch (error) {
                 console.error("Erreur d'ajout:", error);
@@ -291,7 +312,6 @@
             document.getElementById('alert-title').innerText = "Suppression";
             document.getElementById('alert-msg').innerText = "Voulez-vous vraiment supprimer ce souvenir ?";
             
-            // Remplacement temporaire du bouton pour la confirmation
             const btn = document.querySelector('#custom-alert button');
             const oldOnclick = btn.onclick;
             
@@ -300,12 +320,17 @@
             
             btn.onclick = async () => {
                 try {
-                    await deleteDoc(doc(db, COLLECTION_PATH, id));
+                    if (isCloudActive) {
+                        await deleteDoc(doc(db, COLLECTION_PATH, id));
+                    } else {
+                        memories = memories.filter(m => m.id !== id);
+                        localStorage.setItem('local_album', JSON.stringify(memories));
+                        renderFeed();
+                    }
                     closeAlert();
                 } catch(e) {
                     console.error(e);
                 } finally {
-                    // Restauration du bouton alert standard
                     btn.innerText = "Compris";
                     btn.classList.replace('bg-red-500', 'bg-journalAccent');
                     btn.onclick = oldOnclick;
@@ -317,7 +342,6 @@
             const feed = document.getElementById('feed-container');
             feed.innerHTML = '';
 
-            // Règle 2 respectée : Tri effectué en mémoire Javascript
             const sortedMemories = [...memories].sort((a, b) => b.timestamp - a.timestamp);
 
             if (sortedMemories.length === 0) {
@@ -331,14 +355,12 @@
             }
 
             sortedMemories.forEach(mem => {
-                // Formater la date joliment
                 const d = new Date(mem.date);
                 const dateStr = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
                 const card = document.createElement('div');
                 card.className = "polaroid transform transition-transform hover:-translate-y-1";
                 
-                // Un peu de rotation aléatoire pour le style Polaroïd (-1deg, 0deg, ou 1deg)
                 const rot = (Math.random() * 2 - 1).toFixed(1);
                 card.style.transform = `rotate(${rot}deg)`;
 
@@ -366,24 +388,44 @@
         }
 
         async function initializeAppCloud() {
-            try {
-                // Règle 3 respectée : Authentification AVANT les requêtes
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+            document.getElementById('btn-add').classList.remove('hidden');
+
+            if (!isCloudActive) {
+                // Mode local si les clés ne sont pas configurées
+                document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-orange-100');
+                document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-orange-700');
+                document.getElementById('cloud-text').innerText = "Mode Local";
+                document.getElementById('cloud-dot').classList.replace('bg-teal-500', 'bg-orange-500');
                 
+                document.getElementById('loading-state').innerHTML = `
+                    <div class="text-center bg-orange-50 border border-orange-100 p-4 rounded-xl max-w-xs mx-auto">
+                        <p class="text-orange-600 font-bold mb-1">☁️ Clés Firebase manquantes</p>
+                        <p class="text-xs text-orange-500 font-medium">L'album marche sur ce téléphone, mais ne se synchronisera pas. N'oubliez pas d'insérer vos clés dans le code !</p>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    const ls = document.getElementById('loading-state');
+                    if(ls) ls.style.display = 'none';
+                }, 6000);
+
+                const saved = localStorage.getItem('local_album');
+                if (saved) memories = JSON.parse(saved);
+                renderFeed();
+                return;
+            }
+
+            try {
+                // Connexion anonyme à votre Firebase
+                await signInAnonymously(auth);
                 const user = auth.currentUser;
                 if (!user) return;
 
-                // Affichage statut
                 document.getElementById('cloud-status').classList.replace('bg-journalSecondary/20', 'bg-green-100');
                 document.getElementById('cloud-status').classList.replace('text-teal-700', 'text-green-700');
-                document.getElementById('cloud-text').innerText = "Cloud Actif";
-                document.getElementById('btn-add').classList.remove('hidden');
+                document.getElementById('cloud-text').innerText = "En Ligne";
 
-                // Écoute de la collection Firestore en temps réel
+                // Écoute en temps réel de votre collection Firestore
                 onSnapshot(collection(db, COLLECTION_PATH), (snapshot) => {
                     memories = [];
                     snapshot.forEach((doc) => {
@@ -398,11 +440,10 @@
 
             } catch (error) {
                 console.error("Auth error:", error);
-                document.getElementById('loading-state').innerHTML = `<p class="text-red-500 font-bold">Erreur de connexion Cloud.</p>`;
+                document.getElementById('loading-state').innerHTML = `<p class="text-red-500 font-bold text-center">Erreur de connexion.<br>Avez-vous bien activé l'authentification "Anonyme" dans Firebase ?</p>`;
             }
         }
 
-        // Lancement
         initializeAppCloud();
     </script>
 </body>
